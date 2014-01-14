@@ -54,11 +54,11 @@ demeter.Views = demeter.Views || {};
         },
 
         submitReviewButtonClick : function(e){
-        	e.preventDefault()
+            e.preventDefault()
 
-        	if(!Parse.User.current()){
-        		demeter.Vent.trigger('signupRequest', "You need to sign up to write a review.")
-        	}else{
+            if(!Parse.User.current()){
+                demeter.Vent.trigger('signupRequest', "You need to sign up to write a review.")
+            }else{
                 this.submitReview()
             }
         },
@@ -103,8 +103,8 @@ demeter.Views = demeter.Views || {};
                 return false;
             }
 
-            else if(review.get('mentions').length === 0) {
-                this.$flash.html("Please mention at least one restaurant.")
+            else if(_.isUndefined(review.get('mention'))) {
+                this.$flash.html("Please mention one restaurant.")
                 return false;
             }
 
@@ -129,15 +129,26 @@ demeter.Views = demeter.Views || {};
             var mentions = twttr.txt.extractMentions(reviewStr)
             var hashtags = twttr.txt.extractHashtags(reviewStr)
 
-            var review = new demeter.Models.ReviewModel()
 
+            var matchingEstablishment = this.establishments.find(function(establishment){
+                // console.log(establishment.get('sname'), mentions[0])
+                return establishment.get('sname') === mentions[0];
+            });
+
+            console.log(matchingEstablishment)
+
+            var review = new demeter.Models.ReviewModel()
             review.set('rating', rating)
             review.set('price', parseInt(price))
             review.set('review', reviewStr)
-            review.set('mentions', mentions)
+
             review.set('hashtags', hashtags)
             review.set('uid', Parse.User.current().id)
             review.set('username', Parse.User.current().get('name'))
+            review.set('mention', mentions[0])
+            review.set('eid', matchingEstablishment.id)
+
+
 
             var pass = this.reviewTest(review)
 
