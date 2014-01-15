@@ -1,101 +1,135 @@
-/*global demeter, Backbone, JST*/
+/*global sbc2, Backbone, JST*/
 
-demeter.Views = demeter.Views || {};
+sbc2.Views = sbc2.Views || {};
 
 (function () {
     'use strict';
 
-    demeter.Views.AppView = Backbone.View.extend({
+    sbc2.Views.AppView = Backbone.View.extend({
 
         template: JST['app/scripts/templates/app.ejs'],
 
         initialize : function(){
-            this.render()
-            this.initializeRouter()
 
-            var self = this
-            $('.nav').click(function(e){
-                e.preventDefault()
-                var link = e.target.hash.slice(1)
-                self.model.get('router').navigate(link, {trigger: true})
-            })
+      	 	this.authorize()
 
+            this.$pdfDownloadButton = $('a[href$=pdf]')
+            this.$wordDownloadButton = $('a[href$=word]')
+            this.$clearButton = $('#resetDocument')
+
+            $('[data-toggle="tooltip"]').tooltip({'placement': 'right', 'trigger':'click'});
+        	this.$sidebar = $('.sidebar')
+        	this.hashFragment = ''
         },
 
-        render : function(){
-
-            this.userView = new demeter.Views.UserView({
+        authorize : function(){
+            this.userView = new sbc2.Views.UserView({
                 el : $('.user'),
                 model : this.model.get('user')
             })
 
-            this.reviewView = new demeter.Views.ReviewView({
-                el : $('.review'),
-                model : new demeter.Models.ReviewModel()
-            })
-
-            this.mapView = new demeter.Views.MapView({
-                el : $('.map'),
-                model : new demeter.Models.MapModel()
-            })
-
-            // this.searchView = new demeter.Views.SearchView({
-            //     el : $('.search'),
-            //     model : new demeter.Models.SearchModel()
-            // })
-
-            this.currentView = this.reviewView
-            this.writereviewview()
-
+            this.model.get('user').on('login', function(){
+                this.userView.remove()
+                this.initializeEvents()
+                this.initializeViews()
+                this.checkConvertServer()
+                this.render()
+            }, this)
         },
 
-        initializeRouter : function(){
-            var self = this;
-            var Router = Backbone.Router.extend({
-                routes: {
-                      "logout" : "logout",
-                      // "*path" : "navigate"
-                },
-
-                navigate: function(path) {
-                    switch(path){
-                        case "writereview":
-                            self.writereviewview()
-                            break;
-                        case "search":
-                            self.searchview()
-                            break;
-                        default:
-                            break;
-                    }
-                },
-
-                logout : function(){ self.logout() },
-                writereview : function(){ self.writereview() },
-
+        checkConvertServer : function(){
+            var self = this
+            $.get( sbc2.convert_server, function( data ) {
+                if(data.ping === true){
+                    self.$pdfDownloadButton.html('Pdf download')
+                    self.$wordDownloadButton.html('Word download')
+                }
+                else{
+                    self.$pdfDownloadButton.html('Convert server error')
+                    self.$wordDownloadButton.html('Convert server error')
+                }
             });
+        },
 
-            this.model.set({'router' : new Router()})
-            Backbone.history.start();
+
+        render : function(){
+        	this.$sidebar.removeClass('hidden')
+        },
+
+      	navigate : function(path){
+    		$('#'+this.hashFragment).addClass('hidden')
+    		this.hashFragment = path
+    		$('#'+this.hashFragment).removeClass('hidden')
+	   },
+
+        initializeEvents: function(){
+        	var self = this
+
+            this.$sidebar.find('a').on('click', function(e){ self.sidebarLinkClick(e) })
+            this.$clearButton.click(function(e){ self.sidebarClearClick() })
+            this.model.on('navigate', function(path){ this.navigate(path) }, this)
+            this.model.on('download', function(type){ this.fileConvertRequest(type) }, this)
+            this.model.on('clear', function(){ this.sidebarClearClick() }, this)
+        },
+
+        initializeViews : function(){
+        	this.model.set({'documentView': new sbc2.Views.DocumentView({
+        		model : this.model.get('document'),
+        		el : $('.main')
+        	})})
+            if(window.location.hash === ""){
+                this.model.get('router').navigate('companydetails')
+            }
 
         },
 
-        logout : function(){
-            Parse.User.logOut();
-            window.location = ''
+        sidebarLinkClick : function(e){
+    		e.preventDefault()
+			var link = e.target.hash.slice(1)
+			this.model.get('router').navigate(link, {trigger: true})
         },
 
-        writereviewview : function(){
-            $(this.currentView.el).addClass('hidden')
-            $(this.reviewView.el).removeClass('hidden')
-            this.currentView = this.reviewView
+        sidebarClearClick : function(){
+            this.model.get('document').reset()
+
         },
 
-        searchview : function(){
-            $(this.currentView.el).addClass('hidden')
-            $(this.searchView.el).removeClass('hidden')
-            this.currentView = this.searchView
-        }
+        fileConvertRequest : function(type){
+            this.beforeRequest(type)
+            var self = this
+            $.ajax({
+                type: "POST",
+                url: sbc2.convert_server + type + '_convert',
+                data: {id : self.model.get('user').toJSON().id},
+                success: function(success, response){
+                    console.log(success.success)
+                    if(success.success === true) self.convertSuccess(type)
+                    else self.convertError(type)
+                },
+                error : function(){self.convertError(type)}
+            });
+        },
+
+        beforeRequest : function(type){
+            var button = $('a[href$='+type+']');
+            this.$pdfDownloadButton.html('Pdf download')
+            this.$wordDownloadButton.html('Word download')
+            this.originalHtml = button.html()
+            button.html('<i class="fa fa-spin fa-spinner"></i>')
+
+        },
+
+        convertSuccess : function(type){
+            var button = $('a[href$='+type+']');
+            button.html(this.originalHtml)
+            window.location = sbc2.convert_server + type + '/' + this.model.get('user').toJSON().id
+        },
+
+        convertError : function(type){
+            var button = $('a[href$='+type+']');
+            button.html('Server error, try again.')
+        },
+
 
     });
 

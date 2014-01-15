@@ -1,0 +1,83 @@
+/* Global Styles */
+
+h1, h2, h3, h4, h5, h6{
+  font-weight: 300;
+}
+
+html,
+body {
+  height: 100%;
+  width: 100%;
+}
+
+.vert-text {
+  display: table-cell;
+  vertical-align: middle;
+  text-align: center;
+}
+
+
+.pull-up{
+  position: absolute;
+  bottom: 0px;
+}
+
+.vert-text h1 {
+  padding: 0;
+  margin: 0;
+  font-size: 4.5em;
+  font-weight: 300;
+}
+
+.header {
+  display: table;
+  height: 97%;
+  width: 100%;
+  position: relative;
+  background: url(../images/ab.jpg) no-repeat center center fixed;
+  background-size: 100%;
+  -webkit-background-size: cover;
+  -moz-background-size: cover;
+  -o-background-size: cover;
+  background-size: cover;
+}
+
+/* Intro */
+
+.intro {
+  padding: 50px 0;
+  background-color: #7fbbda;
+  color: #ffffff;
+  /*max-height:40%;*/
+}
+
+.betaintro {
+  background-color: #7fbbda;
+  color: #ffffff;
+  height:3.1%;
+}
+
+.callout {
+  color: #ffffff;
+  display: table;
+  height:60%;
+  font-size: 12px;
+  width: 100%;
+  position: relative;
+  background: url(../images/callout.jpg) no-repeat center center fixed;
+  -webkit-background-size: cover;
+  -moz-background-size: cover;
+  -o-background-size: cover;
+  background-size: cover;
+  background-position-y: 120px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .header {
+	 background: url(../images/ab.jpg) no-repeat center center scroll;
+  }
+  .callout {
+	 background: url(../images/callout.jpg) no-repeat center center scroll;
+  }
+}
