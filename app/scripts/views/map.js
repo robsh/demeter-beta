@@ -141,6 +141,7 @@ demeter.Views = demeter.Views || {};
             });
 
             marker.objectId = establishment.id
+            marker.name = establishment.get('name')
             this.markers.push(marker)
 
             google.maps.event.addListener(marker, 'click', function() {
@@ -165,10 +166,13 @@ demeter.Views = demeter.Views || {};
         },
 
         resetMarkerColor : function(marker){
+            this.infoWindow.close(this.map, marker);
             marker.setIcon('https://maps.google.com/mapfiles/marker.png')
         },
 
         highlightMarker : function(marker){
+            this.infoWindow.setContent(marker.name);
+            this.infoWindow.open(this.map, marker);
             marker.setIcon('https://maps.google.com/mapfiles/marker_yellow.png')
         },
 

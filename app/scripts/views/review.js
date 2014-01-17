@@ -127,6 +127,10 @@ demeter.Views = demeter.Views || {};
             review.set('price', parseInt(price))
             review.set('review', reviewStr)
 
+            _.each(hashtags, function(hashtag){
+                hashtag = hashtag.toLowerCase()
+            })
+
             review.set('hashtags', hashtags)
             review.set('uid', Parse.User.current().id)
             review.set('username', Parse.User.current().get('name'))
