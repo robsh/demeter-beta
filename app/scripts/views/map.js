@@ -36,14 +36,12 @@ demeter.Views = demeter.Views || {};
             });
 
             this.map.setCenter(gCenterPoint);
+            this.infoWindow = new google.maps.InfoWindow();
+            this.service = new google.maps.places.PlacesService(this.map);
+            demeter.Vent.trigger('serviceInitialized', this.service)
 
             var input = (document.getElementById('pac-input'));
             this.map.controls[google.maps.ControlPosition.TOP_LEFT].push(input);
-
-            this.infoWindow = new google.maps.InfoWindow();
-            this.service = new google.maps.places.PlacesService(this.map);
-
-            demeter.Vent.trigger('serviceInitialized', this.service)
             this.searchBox = new google.maps.places.SearchBox((input));
 
             this.initializeMapEvents()

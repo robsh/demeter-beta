@@ -12,17 +12,20 @@ demeter.Views = demeter.Views || {};
 
         initialize : function(){},
 
-        setHashtag : function(hashtag){
+        setHashtag : function(hashtag, cp){
         	var self = this
         	var query = new Parse.Query('Review')
 
             if(!_.isUndefined(hashtag)) query.equalTo('hashtags', hashtag)
         	query.limit(25)
+            // console.log(cp)
+            // if(!_.isUndefined(cp)) query.withinKilometers('geo_location', cp, 3)
 
             this.collection = query.collection();
 
+
+
             this.collection.comparator=function(model) {
-                console.log(model.createdAt)
                 return -new Date(model.createdAt).getTime();
             }
 

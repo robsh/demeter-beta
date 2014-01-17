@@ -21,17 +21,6 @@ demeter.Views = demeter.Views || {};
           this.$recentreivews = $(this.el).find('.recentreivews')
 
         	this.establishments = opts.establishments
-
-          this.render()
-
-          this.reviewListView = new demeter.Views.ReviewlistView({
-              el : $(this.$recentreivews),
-              establishments : this.establishments
-          })
-
-          this.reviewListView.setHashtag()
-
-
         	this.initializeEvents()
 
 
@@ -39,10 +28,29 @@ demeter.Views = demeter.Views || {};
 
         initializeEvents : function(){
         	var self = this
-        	demeter.Vent.on('mapPoint', function(cp){ this.centerPoint = cp }, this)
-          demeter.Vent.on('establishments_fetch', function(){ this.setupMentions() }, this)
+        	demeter.Vent.on('mapPoint', function(cp){ this.centerPoint = cp;  }, this)
+          demeter.Vent.on('establishments_fetch', function(){
+            console.log('establishments_fetch')
+            this.setupMentions();
+            this.initializeExtras()
+          }, this)
 
           this.$form.submit(function(e){ self.submitForm(e) })
+        },
+
+        initializeExtras : function(){
+
+          this.render()
+
+          this.$recentreivews.empty()
+
+          this.reviewListView = new demeter.Views.ReviewlistView({
+              el : $(this.$recentreivews),
+              establishments : this.establishments
+          })
+
+          this.reviewListView.setHashtag(undefined, this.centerPoint)
+
         },
 
         render : function(){

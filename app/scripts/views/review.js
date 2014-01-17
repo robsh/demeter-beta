@@ -136,6 +136,7 @@ demeter.Views = demeter.Views || {};
             review.set('username', Parse.User.current().get('name'))
             review.set('mention', mentions[0])
             review.set('eid', matchingEstablishment.id)
+            review.set('geo_location', matchingEstablishment.get('geo_location'))
 
 
 
