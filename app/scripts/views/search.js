@@ -30,6 +30,7 @@ demeter.Views = demeter.Views || {};
         	var self = this
         	demeter.Vent.on('mapPoint', function(cp){ this.centerPoint = cp }, this)
           demeter.Vent.on('establishments_fetch', function(){ this.setupMentions() }, this)
+
           this.$form.submit(function(e){ self.submitForm(e) })
         },
 
@@ -50,6 +51,12 @@ demeter.Views = demeter.Views || {};
               })
 
               self.$hashcloud.append(els)
+
+            $('.hashclouditem').click(function(e){
+              e.preventDefault()
+              var h =e.target.hash.slice(1)
+              demeter.Vent.trigger('hashtag_list', h)
+            })
 
             },
             error: function(collection, error) {
