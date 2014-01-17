@@ -37,7 +37,7 @@ demeter.Views = demeter.Views || {};
         },
 
         render : function(){
-        	$(this.el).append(this.template())
+        	$(this.el).empty().append(this.template())
 
 
         	this.$list = $(this.el).find('.list')
