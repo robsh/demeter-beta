@@ -127,8 +127,8 @@ demeter.Views = demeter.Views || {};
             review.set('price', parseInt(price))
             review.set('review', reviewStr)
 
-            _.each(hashtags, function(hashtag){
-                hashtag = hashtag.toLowerCase()
+            hashtags = _.map(hashtags, function(hashtag){
+                return hashtag.toLowerCase()
             })
 
             review.set('hashtags', hashtags)
