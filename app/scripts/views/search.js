@@ -1,4 +1,4 @@
-/*global demeter, Backbone, JST*/
+  /*global demeter, Backbone, JST*/
 
 demeter.Views = demeter.Views || {};
 
@@ -17,9 +17,13 @@ demeter.Views = demeter.Views || {};
         	this.$form = $(this.el).find('form')
         	this.$btn = $(this.el).find('button[type=submit]')
           this.$flash = $(this.el).find('.flash')
+          this.$hashcloud = $(this.el).find('.hashcloud')
         	this.establishments = opts.establishments
 
+          this.render()
         	this.initializeEvents()
+
+
         },
 
         initializeEvents : function(){
@@ -27,6 +31,32 @@ demeter.Views = demeter.Views || {};
         	demeter.Vent.on('mapPoint', function(cp){ this.centerPoint = cp }, this)
           demeter.Vent.on('establishments_fetch', function(){ this.setupMentions() }, this)
           this.$form.submit(function(e){ self.submitForm(e) })
+        },
+
+        render : function(){
+          var self = this
+          var query = new Parse.Query("Hashtag");
+          this.collection = query.collection();
+          this.collection.fetch({
+            success: function(collection) {
+
+              self.$hashcloud.empty().html('<h3>Popular meals</h3>')
+
+              var els = []
+
+              collection.each(function(hash){
+                var el = '<a class="hashclouditem lead" href="#'+hash.get('hashtag')+'">#'+hash.get('hashtag')+'</a>  '
+                els.push(el)
+              })
+
+              self.$hashcloud.append(els)
+
+            },
+            error: function(collection, error) {
+              // The collection could not be retrieved.
+            }
+          });
+
         },
 
         resetForm : function(msg){

@@ -140,3 +140,13 @@ input, button{
 .places-outer{
 	overflow-y:scroll;
 }
+
+
+.hashcloud{
+	padding: 8px;
+}
+
+.hashclouditem{
+	margin-right: 10px;
+	margin-bottom: 16px;
+}
