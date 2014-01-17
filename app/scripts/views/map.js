@@ -132,14 +132,31 @@ demeter.Views = demeter.Views || {};
             var establishmentJSON = establishment.toJSON()
             var point = new google.maps.LatLng(establishmentJSON.geo_location.latitude, establishmentJSON.geo_location.longitude)
 
+            var number = null, icon;
+            if(!_.isUndefined(establishment.get('reviews'))){
+                number = establishment.get('reviews').length
+                icon = 'http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld='+number+'|FE6256|000000'
+            }else{
+                icon = 'https://maps.google.com/mapfiles/marker.png'
+            }
+
+            if(number === 0 ) {
+                icon = 'https://maps.google.com/mapfiles/marker.png'
+                number = null
+            }
+
+
+
             var marker = new google.maps.Marker({
                 map: this.map,
                 position: point,
-                icon: 'https://maps.google.com/mapfiles/marker.png'
+                icon: icon
             });
 
+            marker.number = number
             marker.objectId = establishment.id
             marker.name = establishment.get('name')
+
             this.markers.push(marker)
 
             google.maps.event.addListener(marker, 'click', function() {
@@ -165,13 +182,22 @@ demeter.Views = demeter.Views || {};
 
         resetMarkerColor : function(marker){
             this.infoWindow.close(this.map, marker);
-            marker.setIcon('https://maps.google.com/mapfiles/marker.png')
+
+            if(marker.number)
+                marker.setIcon('http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld='+marker.number+'|FE6256|123456')
+            else
+                marker.setIcon('https://maps.google.com/mapfiles/marker.png')
         },
 
         highlightMarker : function(marker){
             this.infoWindow.setContent(marker.name);
             this.infoWindow.open(this.map, marker);
-            marker.setIcon('https://maps.google.com/mapfiles/marker_yellow.png')
+
+
+            if(marker.number)
+                marker.setIcon('http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld='+marker.number+'|C6EF8C|123456')
+            else
+                marker.setIcon('https://maps.google.com/mapfiles/marker_yellow.png')
         },
 
         highlightMarkerFromModel : function(model){
