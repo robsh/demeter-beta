@@ -9,7 +9,7 @@
 <% }%>
 <% }) %> <i class="fa fa-eur"></i> <%= model.price %>
 </div>
-<small>by <%= model.username %></small>
+<small>by <%= model.username %> <%= moment(new Date(model.createdAt)).startOf('minute').fromNow() %></small>
 
 <hr>
 

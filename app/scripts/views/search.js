@@ -18,9 +18,20 @@ demeter.Views = demeter.Views || {};
         	this.$btn = $(this.el).find('button[type=submit]')
           this.$flash = $(this.el).find('.flash')
           this.$hashcloud = $(this.el).find('.hashcloud')
+          this.$recentreivews = $(this.el).find('.recentreivews')
+
         	this.establishments = opts.establishments
 
           this.render()
+
+          this.reviewListView = new demeter.Views.ReviewlistView({
+              el : $(this.$recentreivews),
+              establishments : this.establishments
+          })
+
+          this.reviewListView.setHashtag()
+
+
         	this.initializeEvents()
 
 

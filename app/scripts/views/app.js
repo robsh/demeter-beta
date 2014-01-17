@@ -95,6 +95,8 @@ demeter.Views = demeter.Views || {};
 
 
             this.currentView = this.searchView
+
+
         },
 
         initializeRouter : function(){

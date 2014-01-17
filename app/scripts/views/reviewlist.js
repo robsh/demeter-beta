@@ -15,11 +15,20 @@ demeter.Views = demeter.Views || {};
         setHashtag : function(hashtag){
         	var self = this
         	var query = new Parse.Query('Review')
-        	query.equalTo('hashtags', hashtag)
-        	this.collection = query.collection();
+
+            if(!_.isUndefined(hashtag)) query.equalTo('hashtags', hashtag)
+        	query.limit(25)
+
+            this.collection = query.collection();
+
+            this.collection.comparator=function(model) {
+                console.log(model.createdAt)
+                return -new Date(model.createdAt).getTime();
+            }
+
         	this.collection.fetch({
         		success : function(response){
-							self.render()
+					self.render()
         		},
         		error : function(response){
         			console.log(response)
@@ -28,7 +37,6 @@ demeter.Views = demeter.Views || {};
         },
 
         render : function(){
-        	$(this.el).empty()
         	$(this.el).append(this.template())
 
 
@@ -41,6 +49,8 @@ demeter.Views = demeter.Views || {};
         renderList : function(){
         	var self = this
         	var els = []
+
+            // this.collection.sortBy(function(m) { return m.get('createdAt') })
 
         	this.collection.each(function(model){
         		var el = self.itemTemplate({model : model.toJSON()})
