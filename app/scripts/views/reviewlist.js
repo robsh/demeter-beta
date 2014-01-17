@@ -60,15 +60,15 @@ demeter.Views = demeter.Views || {};
         	this.$list.html(els)
 
         	var hashtag_regexp = /#([a-zA-Z0-9]+)/g;
-          var mention_regexp = /@([a-zA-Z0-9]+)/g;
+            var mention_regexp = /@([a-zA-Z0-9]+)/g;
 
-          $($(this.el).find('.areview')).each(function(){
-              $(this).html(self.linkHashtags($(this).html(), hashtag_regexp, '#', 'hashtag'));
-          })
-          $($(this.el).find('.areview')).each(function(){
-              $(this).html(self.linkHashtags($(this).html(), mention_regexp, '@', 'mention'));
-          })
-          this.initializeReviewEvents()
+            $($(this.el).find('.areview')).each(function(){
+                $(this).html(self.linkHashtags($(this).html(), hashtag_regexp, '#', 'hashtag'));
+            })
+            $($(this.el).find('.areview')).each(function(){
+                $(this).html(self.linkHashtags($(this).html(), mention_regexp, '@', 'mention'));
+            })
+            this.initializeReviewEvents()
         },
 
         initializeEvents : function(){
@@ -90,7 +90,7 @@ demeter.Views = demeter.Views || {};
         onHashtagClick : function(e){
             if(!_.isUndefined(e)) e.preventDefault()
             var hashtag = e.target.hash.slice(1)
-            demeter.Vent.trigger('hashtag_list', hashtag)
+            demeter.Vent.trigger('hashtag_list', hashtag.toLowerCase())
         },
 
         onMentionClick : function(e){
