@@ -2,7 +2,7 @@
 
 <p class="lead"><%= model.review %></p>
 <div><% _.each([0, 1, 2, 3, 4], function(i){ %>
-<% if(i<=model.rating){ %>
+<% if(i<=(model.rating-1)){ %>
 	<i class="fa fa-star"></i>
 <% }else{ %>
 <i class="fa fa-star-o"></i>

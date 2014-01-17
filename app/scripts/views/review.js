@@ -31,7 +31,7 @@ demeter.Views = demeter.Views || {};
 
         resetTextarea : function(){
             this.$textareaPlaceholder.empty()
-            this.$textareaPlaceholder.append('<textarea class="form-control" rows="6" placeholder="@Luigis was awesome. 5 euro pizza #pizza"></textarea>')
+            this.$textareaPlaceholder.append('<textarea class="form-control" rows="6" placeholder="Just had an awesome #cheeseburger and #chips with a slice #Chocolate #Cake @Amicus. Burger was cooked to perfection and the cake....oooohhh the cake"></textarea>')
             this.$textarea = $(this.el).find('textarea')
         },
 

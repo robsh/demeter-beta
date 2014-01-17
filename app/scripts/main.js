@@ -6,7 +6,7 @@ var PARSE_JAVASCRIPT_KEY = "teZjsgnov9LixPqIl0IIXU9f3NoYE82wG8Heo8yi"
 // var FACEBOOK_CHANNGEL_URL = 'http://eoinmurray.io/demeter'
 
 /*facebook login depends of callbacks to a url, so we need seperate keys for live and dev*/
-var FACEBOOK_APP_ID = '186183208245915'
+var FACEBOOK_APP_ID = '681242878587777'
 var FACEBOOK_CHANNGEL_URL = 'http://localhost:9000'
 
 

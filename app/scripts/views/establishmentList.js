@@ -25,6 +25,7 @@ demeter.Views = demeter.Views || {};
             var els = []
 
             this.collection.each(function(model, i){
+                model.set('pos', i + 1)
                 var el = self.itemTemplate({model : model.toJSON()})
                 els.push(el)
             })
