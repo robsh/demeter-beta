@@ -1,0 +1,26 @@
+<br>
+<a class="nav" href="#search"><i class="fa fa-angle-double-left"></i> Back to search</a>
+
+<div class="col-lg-12">
+<h3><%= model.name %></h3>
+<address>
+	<strong>Address:</strong><br>
+	<% _.each(model.vicinity.split(','), function(line){ %>
+		<%= line %><br>
+	<% }) %>
+	<abbr title="Phone">P:</abbr> <%= model.phone_number %>
+</address>
+
+Review a meal <a href="#writereview" class="writereview">@<%= model.sname %></a>
+<br><br>
+	<strong>Honest reviews for <%= model.name %>:</strong>
+	<hr>
+</div>
+
+
+
+<div class="reviews col-lg-12">
+		<div class="preReviewSearch"><i class="fa fa-spinner fa-spin"></i> Fetching reviews.</div>
+
+		<div class="noReviews hidden">No reviews so far. Be the first <a href="#writereview" class="writereview">@<%= model.sname %></a>!</div>
+</div>

@@ -1,56 +1,41 @@
-/*global sbc2, Backbone, JST*/
+/*global demeter, Backbone, JST*/
 
-sbc2.Views = sbc2.Views || {};
+demeter.Views = demeter.Views || {};
 
 (function () {
     'use strict';
 
-    sbc2.Views.UserView = Backbone.View.extend({
+    demeter.Views.UserView = Backbone.View.extend({
 
         template: JST['app/scripts/templates/user.ejs'],
 
         initialize : function(){
-            this.$login=$('.login')
-            this.$blanket=$('.blanket')
-
-            this.model.on('needLogin', function(){
-                this.initializeViews()
+            this.render()
+            demeter.Vent.on('login', function(){
+                this.render()
             }, this)
-
-            this.model.initializer()
         },
 
-        initializeViews : function(){
+        render : function(){
+            if (Parse.User.current()) {
+                $(this.el).empty().append(this.template({model : Parse.User}))
+            } else {
+                this.needsLogin()
+            }
+        },
 
-            this.$blanket.addClass('hidden')
-            this.$login.removeClass('hidden')
+        needsLogin : function(){
 
-            this.loginView = new sbc2.Views.LoginView({
-        		el : $(".login"),
+        	new demeter.Views.LoginView({
+        		el : this.el,
         		model : this.model
         	})
 
-        	this.signupView = new sbc2.Views.SignupView({
-        		el : $(".signup"),
+        	new demeter.Views.SignupView({
+        		el : this.el,
         		model : this.model
         	})
-
-            this.loginView.on('changePage', function(){
-                this.loginView.hide()
-                this.signupView.show()
-            }, this)
-
-            this.signupView.on('changePage', function(){
-                this.signupView.hide()
-                this.loginView.show()
-            }, this)
-
-        },
-
-        remove : function(){
-            $(this.el).remove()
         }
-
 
     });
 

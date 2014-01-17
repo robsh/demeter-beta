@@ -1,71 +1,126 @@
-/*global sbc2, Backbone, JST*/
+/*global demeter, Backbone, JST*/
 
-sbc2.Views = sbc2.Views || {};
+demeter.Views = demeter.Views || {};
 
 (function () {
     'use strict';
 
-    sbc2.Views.LoginView = Backbone.View.extend({
+    demeter.Views.LoginView = Backbone.View.extend({
 
         template: JST['app/scripts/templates/login.ejs'],
 
+        events : {
+        	'click .login-button' : 'loginButtonClick',
+            'click .transfer-modal-login' : 'transferModal'
+        },
+
         initialize : function(){
-        	this.render()
+        	$(this.el).append(this.template())
+
+            $(this.el).find('.login-button').removeClass('hidden')
+        	this.$modal = $(this.el).find('#loginModal')
+            this.$facebookLoginButton = this.$modal.find('a[href$=#facebook-login]')
+            this.$loginSubmitButton = this.$modal.find('.login-submit-button')
+            this.$emailInput = this.$modal.find('.email-input')
+            this.$passwordInput = this.$modal.find('.password-input')
+            this.$flash = this.$modal.find('.flash')
+            this.initializeEvents()
         },
 
-        render : function(){
-        	this.$form = $(this.el).find('form')
-        	this.$link = $('.signup-link')
+        initializeEvents : function(){
+            var self = this;
+            this.$facebookLoginButton.click(function(e){ self.facebookLogin(e) })
+            this.$loginSubmitButton.click(function(e){ self.emailLogin(e) })
 
-        	this.$email = $(this.el).find('#inputEmail')
-        	this.$password = $(this.el).find('#inputPassword')
-        	this.$rememberMe = $(this.el).find('#rememberMe')
-        	this.$flash = $(this.el).find('#flash')
-            this.$icon = $(this.el).find('i')
-
-        	var self = this;
-        	this.$link.click(function(e){
-        		e.preventDefault()
-        		self.trigger('changePage')
-        	})
-
-        	this.$form.submit(function(e){
-        		self.submit(e)
-        	})
-
-        	this.model.on('loginFailed', function(error){
-        		this.submitCallback(error)
-        	}, this)
-
-        	this.model.on('login', function(){
-        		this.hide()
-        	}, this)
+            // this allows us to show the login screen from anywhere in the app.
+            demeter.Vent.on('loginRequest', function(msg){
+                this.setTitle(msg)
+                this.loginButtonClick()
+            }, this)
         },
 
-        submit : function(e){
-        	e.preventDefault()
-
-            this.$icon.removeClass('hidden')
-
-        	this.model.set({'email' : this.$email.val()})
-        	this.model.set({'password' : this.$password.val()})
-        	this.model.set({'rememberMe' : this.$rememberMe.is(':checked')})
-
-        	this.$flash.hide()
-        	this.model.login()
+        loginButtonClick : function(e){
+        	if(!_.isUndefined(e)) e.preventDefault()
+        	this.$modal.modal()
         },
 
-        submitCallback : function(error){
-            this.$icon.addClass('hidden')
-        	this.$flash.html(error.code).show()
+        killModal : function(){
+            this.$modal.modal('toggle')
+            $('.modal-backdrop').remove();
         },
 
-        show : function(){
-        	$(this.el).removeClass('hidden')
+        transferModal : function(e){
+            e.preventDefault()
+            this.killModal()
+            demeter.Vent.trigger('signupRequest', 'Sign up')
         },
 
-        hide : function(){
-        	$(this.el).addClass('hidden')
+        setTitle : function(msg){
+            this.$modal.find('.modal-title').text(msg)
+        },
+
+        emailLogin : function(e){
+            e.preventDefault()
+
+            var self = this
+            var previousHTML = this.$loginSubmitButton.html()
+            this.$loginSubmitButton.html('<i class="fa fa-spin fa-spinner"></i> Login')
+
+            var email = this.$emailInput.val()
+            var password = this.$passwordInput.val()
+            Parse.User.logIn(email, password, {
+                success: function(user) {
+                    self.$loginSubmitButton.html(previousHTML)
+                    self.loginSuccess()
+                },
+                error: function(user, error) {
+                    self.$loginSubmitButton.html(previousHTML)
+                    self.$flash.text(error.message)
+                }
+            });
+        },
+
+        facebookLogin : function(e){
+            var self = this;
+            e.preventDefault()
+
+            this.$facebookLoginButton.find('i').removeClass('fa-facebook-square').addClass('fa-spinner fa-spin')
+
+            Parse.FacebookUtils.logIn(null, {
+                success: function(user) {
+                    if(!user.existed()){
+                        self.facebookPopulateDetails()
+                    }
+                    self.loginSuccess()
+                },
+                error: function(user, error) {
+                    this.$facebookLoginButton.find('i').addClass('fa-facebook-square').removeClass('fa-spinner fa-spin')
+                    self.loginFailure()
+
+                }
+            });
+        },
+
+        loginSuccess : function(){
+            this.killModal()
+            this.modal = Parse.User.current()
+            demeter.Vent.trigger('login')
+        },
+
+        loginFailure : function(){
+
+        },
+
+        facebookPopulateDetails : function(){
+            var user = Parse.User.current()
+            FB.api('/' + user.toJSON().authData.facebook.id, function(res){
+                user.set('fid', res.id)
+                user.set('name', res.name)
+                user.set('fusername', res.username)
+                user.set('location', res.location)
+                user.set('link', res.link)
+                user.save()
+            })
         }
 
     });

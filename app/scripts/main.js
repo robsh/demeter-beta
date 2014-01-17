@@ -1,72 +1,66 @@
-Parse.initialize("yu7JSONRyPiLdqNnB8CE4FTTRq2cX7XYpqkgXKFG", "teZjsgnov9LixPqIl0IIXU9f3NoYE82wG8Heo8yi");
+/*global demeter, $*/
+
+var PARSE_MASTER_KEY = "yu7JSONRyPiLdqNnB8CE4FTTRq2cX7XYpqkgXKFG"
+var PARSE_JAVASCRIPT_KEY = "teZjsgnov9LixPqIl0IIXU9f3NoYE82wG8Heo8yi"
+// var FACEBOOK_APP_ID = '681242878587777'
+// var FACEBOOK_CHANNGEL_URL = 'http://eoinmurray.io/demeter'
+
+/*facebook login depends of callbacks to a url, so we need seperate keys for live and dev*/
+var FACEBOOK_APP_ID = '186183208245915'
+var FACEBOOK_CHANNGEL_URL = 'http://localhost:9000'
+
+
+
+/*PARSE INIT*/
+Parse.initialize(PARSE_MASTER_KEY, PARSE_JAVASCRIPT_KEY);
+
+/*FACEBOOK INIT*/
+(function(){
+if (document.getElementById('facebook-jssdk')) {return;}
+var firstScriptElement = document.getElementsByTagName('script')[0];
+var facebookJS = document.createElement('script');
+facebookJS.id = 'facebook-jssdk';
+facebookJS.src = '//connect.facebook.net/en_US/all.js';
+firstScriptElement.parentNode.insertBefore(facebookJS, firstScriptElement);
+
+window.fbAsyncInit = function() {
+  Parse.FacebookUtils.init({
+    appId      : FACEBOOK_APP_ID, // Facebook App ID
+    channelUrl : FACEBOOK_CHANNGEL_URL + '/channel.html', // Channel File
+    status     : false, // check login status
+    cookie     : true, // enable cookies to allow Parse to access the session
+    xfbml      : true  // parse XFBML
+  });
+};
+}());
+
+
+window.demeter = {}
+demeter.Models = {}
+demeter.Collections = {}
+demeter.Views = {}
+demeter.Routers = {}
+demeter.Vent = _.extend({}, Backbone.Events),
+
+demeter.Parameters = {
+    radius : 3,
+    latitude: 51.8972,
+    longitude: -8.47
+
+    // latitude: 37.7833, // San Fran
+    // longitude: -122.4167
+}
+
+demeter.init = function () {
+    'use strict';
+    new demeter.Views.AppView({
+        el : $('.container'),
+        model : new demeter.Models.AppModel()
+    })
+}
 
 $(document).ready(function () {
     'use strict';
-    var $button = $('.submit-email')
-    var $emailInput = $('.input-email')
-    var $flash = $('#flash')
-    var $title = $('.signup-title')
+    demeter.init();
+});
 
-    $emailInput.focus()
-
-    $(".scrolltop").click(function(e) {
-        e.preventDefault()
-        $emailInput.focus()
-    });
-
-    var Landing = Parse.Object.extend("Landing")
-
-    var saveItem = function(){
-        var email = $emailInput.val()
-        var landing = new Landing()
-        landing.set('email', email)
-        landing.save(null, {
-            success: function(landing) {
-                $emailInput.addClass('hidden')
-                $button.addClass('hidden')
-                $title.text('Thank you. We will email you when we launch.')
-            },
-            error: function(landing, error) {
-                $flash.html('Failed to save email: ' + error.message)
-            }
-        })
-    }
-
-    $button.click(function(e){
-        e.preventDefault()
-
-        $flash.addClass('hidden')
-        $button.html('<i class="fa fa-spinner fa-spin"></i>  Go!');
-        var email = $emailInput.val()
-
-        if(email === "" || email.indexOf(".") === -1 || email.indexOf("@") === -1){
-
-            $button.html('Go!')
-            $flash.removeClass('hidden').html('Please fill in a valid email.')
-
-        }else{
-
-            var query = new Parse.Query(Landing);
-            query.equalTo("email", email);
-
-            query.count({
-                success: function(count) {
-                    console.log(count)
-                    if(count != 0){
-                        $flash.removeClass('hidden').html('Email already taken.')
-                        $button.html('Go!')
-                    }else{
-                        saveItem()
-                    }
-                },
-                error: function(error) {
-                    $flash.html('An error has occured.')
-                }
-            });
-
-
-
-        }
-
-    })
-})

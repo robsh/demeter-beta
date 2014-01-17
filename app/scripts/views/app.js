@@ -1,135 +1,192 @@
-/*global sbc2, Backbone, JST*/
+/*global demeter, Backbone, JST*/
 
-sbc2.Views = sbc2.Views || {};
+demeter.Views = demeter.Views || {};
 
 (function () {
     'use strict';
 
-    sbc2.Views.AppView = Backbone.View.extend({
+    demeter.Views.AppView = Backbone.View.extend({
 
         template: JST['app/scripts/templates/app.ejs'],
 
         initialize : function(){
+            this.establishments = new demeter.Collections.EstablishmentCollection()
 
-      	 	this.authorize()
+            this.initializeRouter()
+            this.initializeBeforeRenderEvents()
+            this.render()
+            this.initializeAfterRenderEvents()
 
-            this.$pdfDownloadButton = $('a[href$=pdf]')
-            this.$wordDownloadButton = $('a[href$=word]')
-            this.$clearButton = $('#resetDocument')
 
-            $('[data-toggle="tooltip"]').tooltip({'placement': 'right', 'trigger':'click'});
-        	this.$sidebar = $('.sidebar')
-        	this.hashFragment = ''
+        },
+        initializeBeforeRenderEvents : function(){
+            demeter.Vent.on('establishment_click', function(model){ this.establishmentview(model) }, this)
+            demeter.Vent.on('establishment_click_sname', function(sname){ this.establishmentview_by_sname(sname) }, this)
+            demeter.Vent.on('establishments_list', function(collection){ this.establishmentsview(collection) }, this)
+
+            demeter.Vent.on('hashtag_list', function(hashtag){ this.make_reviewList_view(hashtag) }, this)
+            demeter.Vent.on('nav', function(link){ this.model.get('router').navigate(link, {trigger: true}) }, this)
+            demeter.Vent.on('writereview', function(establishment){ this.writereviewview(establishment) }, this)
+            demeter.Vent.on('mapPoint', function(centrePoint){ this.initializeCollection(centrePoint) }, this)
+
+            demeter.Vent.on('establishments_fetch_failed', function(collection){ this.establishmentsFetchFailed() }, this)
         },
 
-        authorize : function(){
-            this.userView = new sbc2.Views.UserView({
+        initializeCollection : function(centrePoint){
+            var query = new Parse.Query(demeter.Models.EstablishmentModel)
+            this.establishments.query = query
+            this.establishments.query.withinKilometers('geo_location', centrePoint, 3)
+            this.establishments.fetch({
+                success : function(response){
+                    if(response.length < 10) demeter.Vent.trigger('establishments_fetch_failed')
+                    else demeter.Vent.trigger('establishments_fetch')
+                }
+            })
+        },
+
+        initializeAfterRenderEvents : function(){
+            var self = this
+            $('.nav').click(function(e){ self.navigate(e) })
+        },
+
+        render : function(){
+
+            this.placesView = new demeter.Views.PlacesView({
+                el : $('.places')
+            })
+
+            this.userView = new demeter.Views.UserView({
                 el : $('.user'),
                 model : this.model.get('user')
             })
 
-            this.model.get('user').on('login', function(){
-                this.userView.remove()
-                this.initializeEvents()
-                this.initializeViews()
-                this.checkConvertServer()
-                this.render()
-            }, this)
+            this.reviewView = new demeter.Views.ReviewView({
+                el : $('.review'),
+                model : new demeter.Models.ReviewModel(),
+                establishments : this.establishments
+            })
+
+            this.reviewListView = new demeter.Views.ReviewlistView({
+                el : $('.reviewList'),
+                // model : new demeter.Models.ReviewModel(),
+                establishments : this.establishments
+            })
+
+            this.searchView = new demeter.Views.SearchView({
+                el : $('.search'),
+                model : new demeter.Models.SearchModel(),
+                establishments : this.establishments
+            })
+
+            this.establishmentView = new demeter.Views.EstablishmentView({
+                el : $('.establishment'),
+                model : new demeter.Models.EstablishmentModel()
+            })
+
+            this.establishmentListView = new demeter.Views.EstablishmentListView({
+                el : $('.establishmentList')
+            })
+
+            this.mapView = new demeter.Views.MapView({
+                el : $('.map'),
+                model : new demeter.Models.MapModel(),
+                establishments : this.establishments
+            })
+
+
+
+            this.currentView = this.searchView
         },
 
-        checkConvertServer : function(){
-            var self = this
-            $.get( sbc2.convert_server, function( data ) {
-                if(data.ping === true){
-                    self.$pdfDownloadButton.html('Pdf download')
-                    self.$wordDownloadButton.html('Word download')
-                }
-                else{
-                    self.$pdfDownloadButton.html('Convert server error')
-                    self.$wordDownloadButton.html('Convert server error')
-                }
-            });
-        },
-
-
-        render : function(){
-        	this.$sidebar.removeClass('hidden')
-        },
-
-      	navigate : function(path){
-    		$('#'+this.hashFragment).addClass('hidden')
-    		this.hashFragment = path
-    		$('#'+this.hashFragment).removeClass('hidden')
-	   },
-
-        initializeEvents: function(){
-        	var self = this
-
-            this.$sidebar.find('a').on('click', function(e){ self.sidebarLinkClick(e) })
-            this.$clearButton.click(function(e){ self.sidebarClearClick() })
-            this.model.on('navigate', function(path){ this.navigate(path) }, this)
-            this.model.on('download', function(type){ this.fileConvertRequest(type) }, this)
-            this.model.on('clear', function(){ this.sidebarClearClick() }, this)
-        },
-
-        initializeViews : function(){
-        	this.model.set({'documentView': new sbc2.Views.DocumentView({
-        		model : this.model.get('document'),
-        		el : $('.main')
-        	})})
-            if(window.location.hash === ""){
-                this.model.get('router').navigate('companydetails')
-            }
-
-        },
-
-        sidebarLinkClick : function(e){
-    		e.preventDefault()
-			var link = e.target.hash.slice(1)
-			this.model.get('router').navigate(link, {trigger: true})
-        },
-
-        sidebarClearClick : function(){
-            this.model.get('document').reset()
-
-        },
-
-        fileConvertRequest : function(type){
-            this.beforeRequest(type)
-            var self = this
-            $.ajax({
-                type: "POST",
-                url: sbc2.convert_server + type + '_convert',
-                data: {id : self.model.get('user').toJSON().id},
-                success: function(success, response){
-                    console.log(success.success)
-                    if(success.success === true) self.convertSuccess(type)
-                    else self.convertError(type)
+        initializeRouter : function(){
+            var self = this;
+            var Router = Backbone.Router.extend({
+                routes: {
+                      "logout" : "logout",
+                      // "*path" : "navigate"
                 },
-                error : function(){self.convertError(type)}
+
+                navigate: function(path) {
+                    switch(path){
+                        case "writereview":
+                            self.writereviewview()
+                            break;
+                        case "search":
+                            self.searchview()
+                            break;
+                        default:
+                            break;
+                    }
+                },
+
+                logout : function(){ self.logout() },
+                writereview : function(){ self.writereview() },
+
             });
-        },
 
-        beforeRequest : function(type){
-            var button = $('a[href$='+type+']');
-            this.$pdfDownloadButton.html('Pdf download')
-            this.$wordDownloadButton.html('Word download')
-            this.originalHtml = button.html()
-            button.html('<i class="fa fa-spin fa-spinner"></i>')
+            this.model.set({'router' : new Router()})
+            Backbone.history.start();
 
         },
 
-        convertSuccess : function(type){
-            var button = $('a[href$='+type+']');
-            button.html(this.originalHtml)
-            window.location = sbc2.convert_server + type + '/' + this.model.get('user').toJSON().id
+        logout : function(){
+            Parse.User.logOut();
+            window.location = ''
         },
 
-        convertError : function(type){
-            var button = $('a[href$='+type+']');
-            button.html('Server error, try again.')
+        navigate : function(e){
+            if(!_.isUndefined(e)) e.preventDefault()
+            var link = e.target.hash.slice(1)
+            this.model.get('router').navigate(link, {trigger: true})
         },
 
+        writereviewview : function(establishment){
+
+            if(!_.isUndefined(establishment)) this.reviewView.populate(establishment)
+
+            $(this.currentView.el).addClass('hidden')
+            $(this.reviewView.el).removeClass('hidden')
+            this.currentView = this.reviewView
+        },
+
+        searchview : function(){
+            demeter.Vent.trigger('reset_markers')
+            $(this.currentView.el).addClass('hidden')
+            $(this.searchView.el).removeClass('hidden')
+            this.currentView = this.searchView
+        },
+
+        make_reviewList_view : function(hashtag){
+            demeter.Vent.trigger('reset_markers')
+            $(this.currentView.el).addClass('hidden')
+            $(this.reviewListView.el).removeClass('hidden')
+            this.currentView = this.reviewListView
+            this.reviewListView.setHashtag(hashtag)
+        },
+
+        establishmentview_by_sname : function(sname){
+            var model = this.establishments.filter(function(establishment){ return establishment.get('sname')===sname })[0]
+            this.establishmentview(model)
+        },
+
+        establishmentview : function(model){
+            $(this.currentView.el).addClass('hidden')
+            this.establishmentView.setPlace(model)
+            $(this.establishmentView.el).removeClass('hidden')
+            this.currentView = this.establishmentView
+        },
+
+        establishmentsview : function(collection){
+            $(this.currentView.el).addClass('hidden')
+            this.establishmentListView.setCollection(collection)
+            $(this.establishmentListView.el).removeClass('hidden')
+            this.currentView = this.establishmentListView
+        },
+
+        establishmentsFetchFailed : function(){
+            $(this.placesView.el).removeClass('hidden')
+            this.placesView.performSearch()
+        },
 
     });
 

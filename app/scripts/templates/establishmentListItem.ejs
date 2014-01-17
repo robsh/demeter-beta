@@ -1,0 +1,12 @@
+<div class="establishmentListItem">
+
+<strong><a href="#<%=model.sname%>" ><%=model.name%></a></strong>
+<address>
+	<% _.each(model.vicinity.split(','), function(line){ %>
+		<%= line %><br>
+	<% }) %>
+	<abbr title="Phone">P:</abbr> <%= model.phone_number %>
+</address>
+
+<hr>
+</div>

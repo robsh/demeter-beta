@@ -1,5 +1,9 @@
 /*global demeter, Backbone, JST*/
 
+function getRandomArbitary (min, max) {
+    return Math.random() * (max - min) + min;
+}
+
 demeter.Views = demeter.Views || {};
 
 (function () {
@@ -9,9 +13,14 @@ demeter.Views = demeter.Views || {};
 
         template: JST['app/scripts/templates/map.ejs'],
 
-        initialize : function(){
-            this.radius = 3;
+        initialize : function(opts){
 
+            this.centerPoint = new Parse.GeoPoint({latitude: demeter.Parameters.latitude, longitude: demeter.Parameters.longitude});
+
+            demeter.Vent.trigger('mapPoint', this.centerPoint)
+
+            this.establishments = opts.establishments
+            this.markers = []
             this.scaleMap()
             this.initializeEvents()
             this.initializeMap()
@@ -20,110 +29,49 @@ demeter.Views = demeter.Views || {};
         initializeMap : function(){
             $('#over_map').removeClass('hidden')
 
-            this.markers = []
-
+            var gCenterPoint = new google.maps.LatLng(this.centerPoint.latitude, this.centerPoint.longitude)
             this.map = new google.maps.Map(document.getElementById('map_canvas'), {
-                center: new google.maps.LatLng(51.8972, -8.47),
-                zoom: 13,
+                center: gCenterPoint,
+                zoom: 15,
             });
 
+            this.map.setCenter(gCenterPoint);
 
             var input = (document.getElementById('pac-input'));
             this.map.controls[google.maps.ControlPosition.TOP_LEFT].push(input);
 
-            var bounds = new google.maps.LatLngBounds();
-            var c = bounds.getCenter()
-            this.center = new google.maps.LatLng(c.b, c.d)
-
             this.infoWindow = new google.maps.InfoWindow();
             this.service = new google.maps.places.PlacesService(this.map);
-            // this.searchBox = new google.maps.places.SearchBox((input));
 
-            this.centerPoint = new Parse.GeoPoint({latitude: 51.8972, longitude: -8.47});
-            demeter.Vent.trigger('mapPoint', this.centerPoint)
+            demeter.Vent.trigger('serviceInitialized', this.service)
+            this.searchBox = new google.maps.places.SearchBox((input));
 
             this.initializeMapEvents()
+        },
+
+        centerMap : function(){
+            var gCenterPoint = new google.maps.LatLng(this.centerPoint.latitude, this.centerPoint.longitude)
+            this.map.setCenter(gCenterPoint);
         },
 
         initializeEvents : function(){
             var self = this
             $( window ).resize(function() { self.scaleMap() })
+            demeter.Vent.on('establishments_fetch', function(){ this.setupMarkers() }, this)
         },
 
         initializeMapEvents : function(){
             var self = this
+            demeter.Vent.on('mapPoint', function(point){ this.centerMap(point) }, this)
+            google.maps.event.addListenerOnce(this.map, 'idle', function(){ self.onIdle() });
+            google.maps.event.addListener(this.searchBox, 'places_changed', function() { self.onLocationChange() })
 
-            google.maps.event.addListenerOnce(this.map, 'idle', function(){
-                self.performSearch()
-                // $('#pac-input').removeClass('hidden')
-            });
+            demeter.Vent.on('makeMarkerGoogPoint', function(point){ this.markerFromPoint(point) }, this)
+            demeter.Vent.on('reset_markers', function(model){ this.resetMarkers() }, this)
+            demeter.Vent.on('unhighlight_markers', function(model){ this.unhighlightMarkers(model) }, this)
+            demeter.Vent.on('highlight_marker', function(model){ this.highlightMarkerFromModel(model) }, this)
+            demeter.Vent.on('fadeOut_markers', function(collection){ this.fadeOutMarkers(collection) }, this)
 
-            // google.maps.event.addListener(this.searchBox, 'places_changed', function() {
-            //     self.afterLocationChange()
-            //     self.performSearch()
-
-            //     var point = new Parse.GeoPoint({latitude: self.map.getBounds().getCenter().lat(), longitude: self.map.getBounds().getCenter().lng()});
-            //     demeter.Vent.trigger('mapPoint', point)
-            // })
-        },
-
-        afterLocationChange : function(){
-            var places = this.searchBox.getPlaces();
-
-            for (var i = 0, marker; marker = this.markers[i]; i++) {
-                marker.setMap(null);
-            }
-
-            // For each place, get the icon, place name, and location.
-            var bounds = new google.maps.LatLngBounds();
-            for (var i = 0, place; place = places[i]; i++) {
-                var image = {
-                    url: place.icon,
-                    size: new google.maps.Size(71, 71),
-                    origin: new google.maps.Point(0, 0),
-                    anchor: new google.maps.Point(17, 34),
-                    scaledSize: new google.maps.Size(25, 25)
-                };
-
-                // Create a marker for each place.
-                var marker = new google.maps.Marker({
-                    map: self.map,
-                    icon: image,
-                    title: place.name,
-                    position: place.geometry.location
-                });
-
-                this.markers.push(marker);
-
-                bounds.extend(place.geometry.location);
-            }
-            var c = bounds.getCenter()
-            this.center = new google.maps.LatLng(c.b, c.d)
-            this.map.fitBounds(bounds);
-        },
-
-        performSearch : function() {
-            var self = this;
-            var request = {
-                location : this.map.getBounds().getCenter(),
-                radius : this.radius*1000,
-                types : ['food', 'restaurant']
-            };
-
-            this.service.radarSearch(request, function(results, status){
-                self.placesSearchCallback(results, status)
-            });
-        },
-
-        placesSearchCallback : function(results, status) {
-            if (status != google.maps.places.PlacesServiceStatus.OK)
-                return;
-
-            this.savePlacesCondition(results)
-
-            for (var i = 0, result; result = results[i]; i++) {
-                this.createMarker(result);
-            }
         },
 
         scaleMap : function(){
@@ -136,60 +84,120 @@ demeter.Views = demeter.Views || {};
             this.mapCanvas.height('100%')
         },
 
-        createMarker : function(place) {
+        setupMarkers : function(){
             var self = this
+
+            this.clearMarkers()
+            this.establishments.each(function(establishment, i){
+                self.addMarker(establishment)
+            })
+        },
+
+        clearMarkers : function(){
+            var self = this
+
+            if(!_.isUndefined(this.markers)) _.each(this.markers, function(marker){
+                self.hideMarker(marker)
+            })
+
+            this.markers = []
+        },
+
+        fadeOutMarkers : function(collection){
+            var self = this
+
+            var colIds = _.pluck(collection.toJSON(), 'objectId')
+            _.each(this.markers, function(marker){
+                if(!_.contains(colIds, marker.objectId)) self.hideMarker(marker)
+            })
+
+
+        },
+
+        resetMarkers : function(){
+            var self = this
+            _.each(this.markers, function(marker){
+                self.showMarker(marker)
+                self.resetMarkerColor(marker)
+            })
+        },
+
+        unhighlightMarkers : function(){
+            var self = this
+          _.each(this.markers, function(marker){
+                self.resetMarkerColor(marker)
+            })
+        },
+
+        addMarker : function(establishment){
+            var self = this
+            var establishmentJSON = establishment.toJSON()
+            var point = new google.maps.LatLng(establishmentJSON.geo_location.latitude, establishmentJSON.geo_location.longitude)
+
             var marker = new google.maps.Marker({
-                map: self.map,
-                position: place.geometry.location,
+                map: this.map,
+                position: point,
                 icon: 'https://maps.google.com/mapfiles/marker.png'
             });
 
+            marker.objectId = establishment.id
+            this.markers.push(marker)
+
             google.maps.event.addListener(marker, 'click', function() {
-                self.service.getDetails(place, function(result, status) {
-                    if (status != google.maps.places.PlacesServiceStatus.OK) {
-                        alert(status);
-                        return;
-                    }
-                    self.infoWindow.setContent(result.name);
-                    self.infoWindow.open(self.map, marker);
-                });
+                self.onMarkerClick(marker, establishment)
+            })
+        },
+
+        markerFromPoint : function(point){
+            var marker = new google.maps.Marker({
+                map: this.map,
+                position: point,
+                icon: 'https://maps.google.com/mapfiles/marker.png'
             });
         },
 
-        savePlacesCondition : function(places){
+        hideMarker : function(marker){
+            marker.setMap(null);
+        },
+
+        showMarker : function(marker){
+            marker.setMap(this.map);
+        },
+
+        resetMarkerColor : function(marker){
+            marker.setIcon('https://maps.google.com/mapfiles/marker.png')
+        },
+
+        highlightMarker : function(marker){
+            marker.setIcon('https://maps.google.com/mapfiles/marker_yellow.png')
+        },
+
+        highlightMarkerFromModel : function(model){
             var self = this
-            var point = new Parse.GeoPoint({latitude: this.map.getBounds().getCenter().lat(), longitude: this.map.getBounds().getCenter().lng()});
-            var query = new Parse.Query(demeter.Models.EstablishmentModel)
-            query.withinKilometers('geo_location', point, this.radius)
-            query.count({
-                success : function(count){
-                    if(count < 10){
-                        self.savePlaces(places)
-                    }
-                }
+            _.each(this.markers, function(marker){
+                if( model.id === marker.objectId) self.highlightMarker(marker)
             })
         },
 
-        savePlaces : function(places){
+        onIdle : function(){
+            $('#pac-input').removeClass('hidden')
+        },
 
-            var establishments = []
+        onMarkerClick : function(marker, establishment){
+            this.infoWindow.setContent(establishment.get('name'));
+            this.infoWindow.open(this.map, marker);
+            demeter.Vent.trigger('establishment_click', establishment)
+        },
 
-            _.each(places, function(place,i){
-                var establishment = new demeter.Models.EstablishmentModel()
-                establishment.set('gid', place.id)
-                establishment.set('fresh', true)
-                establishment.set('reference', place.reference)
+        onLocationChange : function(){
+            var places = this.searchBox.getPlaces();
+            var bounds = new google.maps.LatLngBounds();
+            for (var i = 0, place; place = places[i]; i++) {
+                bounds.extend(place.geometry.location);
+            }
 
-                var point = new Parse.GeoPoint({latitude: place.geometry.location.lat(), longitude: place.geometry.location.lng()});
-                establishment.set('geo_location', point)
-                establishment.save(null, {
-                    success : function(response, something){
-                        // console.log(response, something)
-                    }, error : function(response, something){
-                        console.log(something.message)
-                    }})
-                establishments.push(establishment)
-            })
+            this.centerPoint = new Parse.GeoPoint({latitude: bounds.getCenter().lat(), longitude: bounds.getCenter().lng()});
+            demeter.Vent.trigger('mapPoint', this.centerPoint)
         },
 
     });

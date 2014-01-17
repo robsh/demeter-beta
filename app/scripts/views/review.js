@@ -9,37 +9,24 @@ demeter.Views = demeter.Views || {};
 
         template: JST['app/scripts/templates/review.ejs'],
 
-        initialize : function(){
-            var self = this
-
+        initialize : function(opts){
+            this.establishments = opts.establishments
 
             this.$flash = $(this.el).find('.flash')
             this.$submitButton = $(this.el).find('.submit-review')
             this.originalHTML = this.$submitButton.html()
-
             this.$ratingVal = $(this.el).find('#ratingval')
             this.$priceInput = $(this.el).find('.number-input')
-
             this.$textareaPlaceholder = $('#textareaPlaceholder')
 
             this.resetTextarea()
-
-
-            this.establishments = new demeter.Collections.EstablishmentCollection()
-
-            demeter.Vent.on('mapPoint', function(centrePoint){
-                var query = new Parse.Query(demeter.Models.EstablishmentModel)
-                this.establishments.query = query
-                this.establishments.query.withinKilometers('geo_location', centrePoint, 3)
-                this.establishments.fetch({
-                    success : function(response){
-                        self.setupMentions(response)
-                    }
-                })
-            }, this)
-
-
             this.initializeEvents()
+        },
+
+        initializeEvents : function(){
+            var self = this
+            demeter.Vent.on('establishments_fetch', function(){ self.setupMentions() })
+            this.$submitButton.click(function(e){ self.submitReviewButtonClick(e) })
         },
 
         resetTextarea : function(){
@@ -48,22 +35,17 @@ demeter.Views = demeter.Views || {};
             this.$textarea = $(this.el).find('textarea')
         },
 
-        initializeEvents : function(){
-            var self = this
-            this.$submitButton.click(function(e){ self.submitReviewButtonClick(e) })
-        },
-
         submitReviewButtonClick : function(e){
-            e.preventDefault()
+        	e.preventDefault()
 
-            if(!Parse.User.current()){
-                demeter.Vent.trigger('signupRequest', "You need to sign up to write a review.")
-            }else{
+        	if(!Parse.User.current()){
+        		demeter.Vent.trigger('signupRequest', "You need to sign up to write a review.")
+        	}else{
                 this.submitReview()
             }
         },
 
-        setupMentions : function(response){
+        setupMentions : function(){
             var establishmentArray = []
 
             this.resetTextarea()
@@ -85,6 +67,7 @@ demeter.Views = demeter.Views || {};
         reviewReset : function(){
             this.$flash.html('Review submitted! Thank you.')
             this.$textarea.val('')
+            this.$priceInput.val('0')
             $('.rating-input').find('span').each(function(i, el){
                 $(el).removeClass('fa-star fa-star-o')
                 if(i>2){
@@ -123,6 +106,8 @@ demeter.Views = demeter.Views || {};
 
         submitReview : function(){
             var self = this
+            this.$flash.html("")
+
             var rating = this.$ratingVal.val()
             var price = this.$priceInput.val()
             var reviewStr = this.$textarea.val()
@@ -138,7 +123,7 @@ demeter.Views = demeter.Views || {};
             console.log(matchingEstablishment)
 
             var review = new demeter.Models.ReviewModel()
-            review.set('rating', rating)
+            review.set('rating', parseInt(rating) + 1)
             review.set('price', parseInt(price))
             review.set('review', reviewStr)
 
@@ -165,6 +150,10 @@ demeter.Views = demeter.Views || {};
                     }
                 });
             }
+        },
+
+        populate : function(establishment){
+            this.$textarea.focus().val('@' + establishment.get('sname') + ' ')
         },
 
     });
