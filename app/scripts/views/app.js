@@ -46,7 +46,7 @@ demeter.Views = demeter.Views || {};
 
         initializeAfterRenderEvents : function(){
             var self = this
-            $('.nav').click(function(e){ self.navigate(e) })
+            $('.navLink').click(function(e){ self.navigate(e) })
         },
 
         render : function(){
@@ -68,7 +68,6 @@ demeter.Views = demeter.Views || {};
 
             this.reviewListView = new demeter.Views.ReviewlistView({
                 el : $('.reviewList'),
-                // model : new demeter.Models.ReviewModel(),
                 establishments : this.establishments
             })
 
@@ -119,7 +118,10 @@ demeter.Views = demeter.Views || {};
                     }
                 },
 
-                logout : function(){ self.logout() },
+                logout : function(){
+                    console.log('logout')
+                    self.logout()
+                },
                 writereview : function(){ self.writereview() },
 
             });
@@ -136,7 +138,8 @@ demeter.Views = demeter.Views || {};
 
         navigate : function(e){
             if(!_.isUndefined(e)) e.preventDefault()
-            var link = e.target.hash.slice(1)
+            // console.log(e)
+            var link = e.currentTarget.hash.slice(1)
             this.model.get('router').navigate(link, {trigger: true})
         },
 

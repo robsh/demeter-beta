@@ -92,7 +92,7 @@ demeter.Views = demeter.Views || {};
         initializeEvents : function(){
             var self = this
 
-            $(this.el).find('.nav').click(function(e){
+            $(this.el).find('.navLink').click(function(e){
                 e.preventDefault()
                 var link = e.target.hash.slice(1)
                 demeter.Vent.trigger('nav', link)
