@@ -42,6 +42,7 @@ demeter.Views = demeter.Views || {};
 
             var input = (document.getElementById('pac-input'));
             this.map.controls[google.maps.ControlPosition.TOP_LEFT].push(input);
+
             this.searchBox = new google.maps.places.SearchBox((input));
 
             this.initializeMapEvents()
@@ -61,7 +62,7 @@ demeter.Views = demeter.Views || {};
         initializeMapEvents : function(){
             var self = this
             demeter.Vent.on('mapPoint', function(point){ this.centerMap(point) }, this)
-            google.maps.event.addListenerOnce(this.map, 'idle', function(){ self.onIdle() });
+            // google.maps.event.addListenerOnce(this.map, 'idle', function(){ self.onIdle() });
             google.maps.event.addListener(this.searchBox, 'places_changed', function() { self.onLocationChange() })
 
             demeter.Vent.on('makeMarkerGoogPoint', function(point){ this.markerFromPoint(point) }, this)
