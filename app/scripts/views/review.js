@@ -123,7 +123,7 @@ demeter.Views = demeter.Views || {};
             console.log(matchingEstablishment)
 
             var review = new demeter.Models.ReviewModel()
-            review.set('rating', parseInt(rating) + 1)
+            review.set('rating', parseInt(rating) )
             review.set('price', parseInt(price))
             review.set('review', reviewStr)
 
